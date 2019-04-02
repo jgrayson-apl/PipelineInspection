@@ -1,0 +1,123 @@
+html,
+body {
+  margin                   : 0;
+  padding                  : 0;
+  width                    : 100%;
+  height                   : 100%;
+  font-size                : 100%;
+  -webkit-text-size-adjust : 100%;
+  -moz-text-size-adjust    : 100%;
+  -ms-text-size-adjust     : 100%;
+}
+
+body {
+  display        : flex;
+  flex-direction : column;
+}
+
+body * {
+  outline : none;
+}
+
+.configurable-application--loading {
+  background : #fff url(../assets/loader-ie9.gif) no-repeat center center;
+}
+
+#header-panel {
+  flex-shrink : 0;
+  flex-grow   : 0;
+  z-index     : 99;
+  box-shadow  : 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+#main-container {
+  flex-shrink    : 1;
+  flex-grow      : 1;
+  min-width      : 0;
+  min-height     : 0;
+  display        : flex;
+  flex-direction : row;
+}
+
+
+#tour-controls-panel {
+  flex-shrink     : 0;
+  flex-grow       : 0;
+  display         : flex;
+  flex-direction  : row;
+  justify-content : center;
+}
+
+#view-container {
+  flex-shrink : 1;
+  flex-grow   : 1;
+  min-width   : 0;
+  min-height  : 0;
+}
+
+#user-thumb-node {
+  height         : 36px;
+  border-radius  : 18px;
+  vertical-align : middle;
+}
+
+.top-nav-link:hover, .top-nav-link:focus {
+  color               : #fff;
+  border-bottom-color : #fff;
+}
+
+#map-side-drawer,
+#map-side-drawer .drawer-nav {
+  display        : flex;
+  flex-direction : column;
+}
+
+#map-side-drawer .drawer-nav > :nth-child(1) {
+  flex-shrink : 0;
+  flex-grow   : 0;
+}
+
+#map-side-drawer .drawer-nav > :nth-child(2) {
+  flex-shrink : 1;
+  flex-grow   : 1;
+  overflow-y  : scroll;
+  overflow-x  : hidden;
+}
+
+#map-side-drawer .drawer-nav > :nth-child(3) {
+  flex-shrink : 0;
+  flex-grow   : 0;
+}
+
+.esri-layer-list__item-actions-menu-item:hover,
+.esri-layer-list__item-actions-menu-item--active,
+.esri-layer-list__item-actions-menu-item--active:hover {
+  color            : #0079c1 !important;
+  background-color : transparent !important;
+}
+
+.esri-widget--button {
+  color            : #fff !important;
+  background-color : #0079c1 !important;
+}
+
+.drawer-nav {
+  width : 350px;
+}
+
+.view-loading-node {
+  box-shadow : none !important;
+}
+
+.view-loading-node .loader-text {
+  padding-top : 3em !important;
+}
+
+.side-nav-link:last-of-type {
+  border-bottom : solid 1px #efefef;
+}
+
+.side-view {
+  width  : 250px;
+  height : 250px;
+}
