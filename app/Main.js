@@ -385,7 +385,7 @@ define([
 
       // FLY TOOL //
       const fly_tool = new FlyTool({ view: view });
-      view.ui.add(fly_tool.button, { position: "top-right", index: 0 });
+      view.ui.add(fly_tool.button, { position: "top-right" });
 
     },
 
@@ -396,7 +396,7 @@ define([
      */
     applicationReady: function (view) {
 
-      this.initializeFlyTool(view);
+
 
       this.initializeTour(view);
 
@@ -433,13 +433,14 @@ define([
 
     initializeTour: function (view) {
 
-      // SPIN //
+      // SPIN TOOL //
       this.initializeViewSpinTools(view);
 
-
-      // HEADING //
+      // HEADING AND LOOK AROUND TOOLS //
       this.createHeadingSlider(view);
 
+      // FLY TOOL //
+      this.initializeFlyTool(view);
 
       //this.initializeSideViews(view);
 
