@@ -433,20 +433,20 @@ define([
 
     initializeTour: function (view) {
 
+      // SPIN //
+      this.initializeViewSpinTools(view);
+
+
+      // HEADING //
+      this.createHeadingSlider(view);
+
+
       //this.initializeSideViews(view);
 
       // NAVIGATION CONSTRAINTS //
       view.map.ground.navigationConstraint = { type: "none" };
       view.constraints.clipDistance = { near: 0.1, far: 1000 };
 
-      /*view.environment = {
-        atmosphereEnabled: true,
-        atmosphere: { quality: "high" },
-        lighting: {
-          directShadowsEnabled: true,
-          ambientOcclusionEnabled: true
-        }
-      };*/
 
       // ELEVATION SAMPLER //
       //const elevationSampler = tour_view.groundView.elevationSampler;
@@ -932,6 +932,234 @@ define([
         x: fromPnt.x + ((toPnt.x - fromPnt.x) * along),
         y: fromPnt.y + ((toPnt.y - fromPnt.y) * along),
         z: fromPnt.z + ((toPnt.z - fromPnt.z) * along)
+      });
+    },
+
+    /**
+     *
+     * @param view
+     */
+    createHeadingSlider: function (view) {
+
+      const set_camera_heading = (heading, animate) => {
+        const camera = view.camera.clone();
+        camera.heading = heading;
+        view.goTo(camera, { animate: false });
+      };
+
+      const headingPanel = domConstruct.create("div", { className: "panel panel-dark-blue padding-trailer-quarter" });
+      view.ui.add(headingPanel, "top-right");
+
+      const directionsTable = domConstruct.create("table", { className: "slider-table trailer-0" }, headingPanel);
+      const directionsRow = domConstruct.create("tr", {}, directionsTable);
+      domConstruct.create("td", {}, directionsRow);
+      const directionsNode = domConstruct.create("div", { className: "directions-node text-center" }, domConstruct.create("td", {}, directionsRow));
+      domConstruct.create("td", {}, directionsRow);
+
+      const directions = [
+        { label: "N", tooltip: "North", heading: 0.0 },
+        { label: "ne", tooltip: "North East", heading: 45.0 },
+        { label: "E", tooltip: "East", heading: 90.0 },
+        { label: "se", tooltip: "South East", heading: 135.0 },
+        { label: "S", tooltip: "South", heading: 180.0 },
+        { label: "sw", tooltip: "South West", heading: 225.0 },
+        { label: "W", tooltip: "West", heading: 270.0 },
+        { label: "nw", tooltip: "North West", heading: 315.0 },
+        { label: "N", tooltip: "North", heading: 360.0 }
+      ];
+      directions.forEach(dirInfo => {
+        const dirNode = domConstruct.create("span", {
+          className: "direction-node inline-block text-center font-size--3 avenir-demi esri-interactive",
+          innerHTML: dirInfo.label,
+          title: dirInfo.tooltip
+        }, directionsNode);
+        on(dirNode, "click", () => {
+          set_camera_heading(dirInfo.heading);
+        });
+      });
+
+      const sliderRow = domConstruct.create("tr", {}, directionsTable);
+      const sliderLeftNode = domConstruct.create("span", {
+        title: "decrease/left/counter-clockwise",
+        className: "direction-node esri-interactive icon-ui-left icon-ui-flush font-size-1"
+      }, domConstruct.create("td", {}, sliderRow));
+      const slider = domConstruct.create("input", {
+        className: "font-size-1",
+        type: "range",
+        min: 0, max: 360, step: 1, value: 0
+      }, domConstruct.create("td", {}, sliderRow));
+      const sliderRightNode = domConstruct.create("span", {
+        title: "increase/right/clockwise",
+        className: "direction-node esri-interactive icon-ui-right icon-ui-flush font-size-1"
+      }, domConstruct.create("td", {}, sliderRow));
+
+      on(sliderLeftNode, "click", () => {
+        set_camera_heading(slider.valueAsNumber - 5);
+      });
+      on(sliderRightNode, "click", () => {
+        set_camera_heading(slider.valueAsNumber + 5);
+      });
+
+      const headingRow = domConstruct.create("tr", {}, directionsTable);
+      domConstruct.create("td", {}, headingRow);
+      const heading_label = domConstruct.create("div", { className: "direction-label text-center font-size-1 avenir-bold", innerHTML: "0&deg;" }, domConstruct.create("td", {}, headingRow));
+      domConstruct.create("td", {}, headingRow);
+
+      on(slider, "input", () => {
+        set_camera_heading(slider.valueAsNumber);
+      });
+      watchUtils.init(view, "camera.heading", (heading) => {
+        if(heading) {
+          heading_label.innerHTML = `${heading.toFixed(0)}&deg;`;
+          slider.valueAsNumber = heading;
+        }
+      });
+
+      // LOOK AROUND NAVIGATION //
+      this.initializeLookAroundNavigation(view, headingPanel);
+
+    },
+
+    /**
+     *
+     * @param view
+     * @param panel
+     */
+    initializeLookAroundNavigation: function (view, panel) {
+
+      const look_around_handlers = [];
+
+      const clear_look_around_handlers = () => {
+        if(look_around_handlers.length > 0) {
+          look_around_handlers.forEach(handler => {
+            handler.remove();
+            handler = null;
+          });
+          look_around_handlers.length = 0;
+        }
+      };
+
+      const stop_propagation = evt => evt.stopPropagation();
+
+      const create_look_around_handlers = () => {
+
+        look_around_handlers.push(view.on("pointer-enter", function (evt) {
+          view.container.style.cursor = "all-scroll";
+          evt.stopPropagation();
+        }));
+
+        // B + Left-click + Drag //
+        look_around_handlers.push(view.on("drag", ["b"], function (evt) {
+          if(evt.button !== 0) {
+            evt.stopPropagation();
+          }
+        }));
+
+        look_around_handlers.push(view.on("immediate-click", stop_propagation));
+        look_around_handlers.push(view.on("click", stop_propagation));
+        look_around_handlers.push(view.on("double-click", stop_propagation));
+        look_around_handlers.push(view.on("hold", stop_propagation));
+        look_around_handlers.push(view.on("key-down", stop_propagation));
+        look_around_handlers.push(view.on("key-up", stop_propagation));
+        look_around_handlers.push(view.on("mouse-wheel", stop_propagation));
+        look_around_handlers.push(view.on("pointer-down", stop_propagation));
+        look_around_handlers.push(view.on("pointer-move", stop_propagation));
+        look_around_handlers.push(view.on("pointer-up", stop_propagation));
+
+        look_around_handlers.push(view.on("pointer-leave", function (evt) {
+          view.container.style.cursor = "default";
+          evt.stopPropagation();
+        }));
+      };
+
+      // LOOK AROUND BUTTON //
+      const look_around_btn = domConstruct.create("button", { className: "btn btn-fill", innerHTML: "Look Around" }, panel);
+      on(look_around_btn, "click", () => {
+        domClass.toggle(look_around_btn, "icon-ui-check-mark");
+        const is_enabled = domClass.contains(look_around_btn, "icon-ui-check-mark");
+        if(!is_enabled) {
+          clear_look_around_handlers();
+          view.inputManager._inputManager._activeKeyModifiers = new Set([]);
+        } else {
+          view.inputManager._inputManager._activeKeyModifiers = new Set(["b"]);
+          create_look_around_handlers();
+        }
+      });
+
+    },
+
+    /**
+     *
+     * @param view
+     */
+    initializeViewSpinTools: function (view) {
+
+      let spin_direction = "none";
+      let spin_handle = null;
+      let spin_step = 0.1;
+      const spin_fps = 90;
+
+      const _spin = () => {
+        if(spin_direction !== "none") {
+          const heading = (view.camera.heading + ((spin_direction === "right") ? spin_step : -spin_step));
+          spin_handle = view.goTo({ target: view.viewpoint.targetGeometry, heading: heading }, { animate: false }).then(() => {
+            if(spin_direction !== "none") {
+              setTimeout(() => {
+                requestAnimationFrame(_spin);
+              }, 1000 / spin_fps);
+            }
+          });
+        }
+      };
+
+      const enableSpin = (direction) => {
+        spin_direction = direction;
+        if(spin_direction !== "none") {
+          requestAnimationFrame(_spin);
+        } else {
+          spin_handle && !spin_handle.isFulfilled() && spin_handle.cancel();
+        }
+      };
+
+      let previous_direction = "none";
+      this.spin_pause = () => {
+        previous_direction = spin_direction;
+        enableSpin("none");
+      };
+      this.spin_resume = () => {
+        enableSpin(previous_direction);
+      };
+
+      const viewSpinNode = domConstruct.create("div", { className: "view-spin-node" }, view.root);
+      const spinLeftBtn = domConstruct.create("span", { className: "spin-btn icon-ui-arrow-left-circled icon-ui-flush font-size-2 esri-interactive", title: "Spin Left" }, viewSpinNode);
+      const alwaysUpBtn = domConstruct.create("span", { id: "always-up-btn", className: "spin-btn icon-ui-compass icon-ui-flush font-size--1 esri-interactive", title: "Always Up" }, viewSpinNode);
+      const spinRightBtn = domConstruct.create("span", { className: "spin-btn icon-ui-arrow-right-circled icon-ui-flush font-size-2 esri-interactive", title: "Spin Right" }, viewSpinNode);
+
+      // SPIN LEFT //
+      on(spinLeftBtn, "click", () => {
+        enableSpin("none");
+        domClass.remove(spinRightBtn, "selected");
+        domClass.toggle(spinLeftBtn, "selected");
+        if(domClass.contains(spinLeftBtn, "selected")) {
+          enableSpin("left");
+        }
+      });
+
+      // SPIN RIGHT //
+      on(spinRightBtn, "click", () => {
+        enableSpin("none");
+        domClass.remove(spinLeftBtn, "selected");
+        domClass.toggle(spinRightBtn, "selected");
+        if(domClass.contains(spinRightBtn, "selected")) {
+          enableSpin("right");
+        }
+      });
+
+      // ALWAYS UP //
+      let always_up = false;
+      on(alwaysUpBtn, "click", () => {
+        domClass.toggle(alwaysUpBtn, "selected");
+        always_up = domClass.contains(alwaysUpBtn, "selected");
       });
     }
 

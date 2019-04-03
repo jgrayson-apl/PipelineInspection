@@ -121,3 +121,62 @@ body * {
   width  : 250px;
   height : 250px;
 }
+
+
+.view-spin-node {
+  padding       : 0;
+  z-index       : 99;
+  position      : absolute;
+  top           : 15px;
+  left          : calc(50% - 45px);
+  background    : #004575 !important;
+  border-radius : 9px;
+}
+
+.view-spin-node * {
+  outline : none;
+}
+
+.spin-btn {
+  margin     : 0 5px;
+  color      : #ccc !important;
+  background : #004575 !important;
+}
+
+.spin-btn:hover,
+.selected {
+  color       : #fff !important;
+  text-shadow : 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+#always-up-btn {
+  vertical-align : text-top;
+  line-height    : 1.1em;
+  margin         : 0 2px;
+}
+
+
+.slider-table td {
+  padding : 0;
+}
+
+.directions-node {
+  margin : 0 5px 0 5px;
+}
+
+.direction-node {
+  width          : 20px;
+  vertical-align : middle;
+}
+
+.direction-node:hover {
+  color : #69dcff;
+}
+
+.direction-node:active {
+  color : #fff;
+}
+
+.direction-label {
+  color : #69dcff;
+}
