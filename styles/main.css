@@ -180,3 +180,8 @@ body * {
 .direction-label {
   color : #69dcff;
 }
+
+.overview-panel {
+  width  : 35vw;
+  height : 20vh;
+}

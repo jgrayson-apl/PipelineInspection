@@ -138,7 +138,7 @@
               <span>kms</span>
             </div>
             <input id="tour-slider" type="range" min=0 step=1 value=0>
-            <div class="text-off-black text-center">
+            <div class="text-white text-center">
               <label class="toggle-switch trailer-0">
                 <span class="toggle-switch-label font-size--3">slower</span>
                 <input id="speed-input" type="checkbox" class="toggle-switch-input">
@@ -154,26 +154,39 @@
         <div class="panel panel-blue leader-1">
 
           <label>
-            Z Offset: <span id="offset-label">2.5</span>
+            Z Offset:
+            <span id="offset-label">2.5</span>
             <input id="offset-input" type="range" min="0.5" max="10.0" step="any" value="2.5">
           </label>
 
           <label>
-            Densification Distance: <span id="densification-label">150</span>
+            Densification Distance:
+            <span id="densification-label">150</span>
             <input id="densification-input" type="range" min="10" max="500" step="10" value="150">
           </label>
 
           <label>
-            Look Ahead Distance: <span id="lookahead-label">250</span>
+            Look Ahead Distance:
+            <span id="lookahead-label">250</span>
             <input id="lookahead-input" type="range" min="10" max="500" step="10" value="250">
           </label>
 
           <label>
-            Look Down Angle: <span id="lookdown-label">2.5</span>
+            Look Down Angle:
+            <span id="lookdown-label">80</span>
             <input id="lookdown-input" type="range" min="0" max="90" step="1" value="80">
           </label>
 
         </div>
+
+        <div class="panel panel-blue leader-1">
+          <label>
+            Max Clip Distance:
+            <span id="max-clip-distance-label">1000</span>
+            <input id="max-clip-distance-input" type="range" min="0" max="5000" step="1" value="1000">
+          </label>
+        </div>
+
       </div>
     </div>
 

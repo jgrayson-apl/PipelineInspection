@@ -45,6 +45,7 @@ define([
   "esri/geometry/Mesh",
   "esri/geometry/support/geodesicUtils",
   "esri/Graphic",
+  "esri/views/MapView",
   "esri/views/SceneView",
   "esri/widgets/Home",
   "esri/widgets/Search",
@@ -57,7 +58,8 @@ define([
              IdentityManager, Evented, watchUtils, promiseUtils, Viewpoint,
              Portal, Layer, GraphicsLayer,
              Point, Extent, Polyline, geometryEngine, Mesh, geodesicUtils,
-             Graphic, SceneView, Home, Search, LayerList, Legend, Expand, FlyTool) {
+             Graphic, MapView, SceneView,
+             Home, Search, LayerList, Legend, Expand, FlyTool) {
 
   return declare([Evented], {
 
@@ -396,8 +398,6 @@ define([
      */
     applicationReady: function (view) {
 
-
-
       this.initializeTour(view);
 
       const pipelineLayerName = "BP_Line";
@@ -418,6 +418,9 @@ define([
           this.emit("pipeline-selected", { pipeline_geometry: pipelineFeature.geometry });
         });
 
+        //
+        // INTERACTIVELY SELECT PIPELINE //
+        //
         /*view.on("click", click_evt => {
           view.hitTest(click_evt, { include: [pipelineLayer] }).then(hitResponse => {
             const pipelineHit = hitResponse.results.length ? hitResponse.results[0] : null;
@@ -427,10 +430,68 @@ define([
           });
         });*/
 
+        this.initializeOverview(view);
+
       });
 
     },
 
+    /**
+     *
+     * @param view
+     */
+    initializeOverview: function (view) {
+
+      const overviewPanel = domConstruct.create("div", { className: "panel panel-blueX overview-panel" });
+      view.ui.add(overviewPanel, "bottom-left");
+
+      const overviewView = new MapView({
+        container: overviewPanel,
+        map: view.map,
+        ui: { components: [] }
+      });
+      overviewView.when(() => {
+        const locationGraphic = new Graphic({
+          symbol: {
+            type: "simple-marker",
+            style: "circle",
+            color: Color.named.dodgerblue,
+            size: "9px",
+            outline: { color: Color.named.dodgerblue, width: 3 }
+          }
+        });
+        const locationLayer = new GraphicsLayer({ title: "Location Layer", graphics: [locationGraphic] });
+        view.map.add(locationLayer);
+
+        // DON'T DISPLAY IN 3D VIEW //
+        view.whenLayerView(locationLayer).then(locationLayerView => {
+          locationLayerView.visible = false;
+        });
+
+        // UPDATE GRAPHIC WHEN MAIN VIEW CAMERA CHANGES //
+        watchUtils.init(view, "camera", camera => {
+          locationGraphic.geometry = camera.position;
+        });
+
+        overviewView.on("click", click_evt => {
+          overviewView.hitTest(click_evt).then(hitResponse => {
+            const pipelineHit = hitResponse.results.find(result => {
+              return (result.graphic && result.graphic.layer && (result.graphic.layer.title === "BP_Line"));
+            });
+            if(pipelineHit) {
+              this.emit("find-nearest-along-pipeline", { location: click_evt.mapPoint });
+            }
+          });
+        });
+
+      });
+
+    },
+
+    /**
+     *
+     * @param view
+     */
     initializeTour: function (view) {
 
       // SPIN TOOL //
@@ -444,9 +505,18 @@ define([
 
       //this.initializeSideViews(view);
 
+      const max_clip_distance_input = dom.byId("max-clip-distance-input");
+      const max_clip_distance_label = dom.byId("max-clip-distance-label");
+      on(max_clip_distance_input, "input", () => {
+        max_clip_distance_label.innerHTML = max_clip_distance_input.valueAsNumber;
+      });
+      on(max_clip_distance_input, "change", () => {
+        view.constraints.clipDistance = { near: 0.1, far: max_clip_distance_input.valueAsNumber };
+      });
+
       // NAVIGATION CONSTRAINTS //
       view.map.ground.navigationConstraint = { type: "none" };
-      view.constraints.clipDistance = { near: 0.1, far: 1000 };
+      view.constraints.clipDistance = { near: 0.1, far: max_clip_distance_input.valueAsNumber };
 
 
       // ELEVATION SAMPLER //
@@ -542,6 +612,14 @@ define([
       const get_route_location = (index) => {
         return route_geom.getPoint(0, (index <= max_index) ? index : max_index);
       };
+
+
+      this.on("find-nearest-along-pipeline", evt => {
+        const nearestPointResult = geometryEngine.nearestCoordinate(route_geom, evt.location);
+        point_index = nearestPointResult.vertexIndex;
+        set_current();
+      });
+
 
       const lookahead_input = dom.byId("lookahead-input");
       const lookahead_label = dom.byId("lookahead-label");
