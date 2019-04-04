@@ -399,6 +399,7 @@ define([
     applicationReady: function (view) {
 
       this.initializeTour(view);
+      this.initializeOverview(view);
 
       const pipelineLayerName = "BP_Line";
       this.whenLayerReady(view, pipelineLayerName).then(layerInfo => {
@@ -430,10 +431,24 @@ define([
           });
         });*/
 
-        this.initializeOverview(view);
 
       });
 
+    },
+
+
+    /**
+     *
+     * @param view
+     * @param visible
+     */
+    makeBasemapVisible: function (view, visible) {
+      const allBasemapLayers = view.map.basemap.baseLayers.concat(view.map.basemap.referenceLayers);
+      allBasemapLayers.forEach(baseLayer => {
+        view.whenLayerView(baseLayer).then(baseLayerView => {
+          baseLayerView.visible = true;
+        });
+      });
     },
 
     /**
@@ -442,7 +457,7 @@ define([
      */
     initializeOverview: function (view) {
 
-      const overviewPanel = domConstruct.create("div", { className: "panel panel-blueX overview-panel" });
+      const overviewPanel = domConstruct.create("div", { className: "panel overview-panel" });
       view.ui.add(overviewPanel, "bottom-left");
 
       const overviewView = new MapView({
@@ -451,6 +466,9 @@ define([
         ui: { components: [] }
       });
       overviewView.when(() => {
+
+        this.makeBasemapVisible(overviewView, true);
+
         const locationGraphic = new Graphic({
           symbol: {
             type: "simple-marker",
@@ -484,6 +502,10 @@ define([
           });
         });
 
+        this.on("pipeline-selected", evt => {
+          overviewView.goTo(evt.pipeline_geometry);
+        });
+
       });
 
     },
@@ -494,9 +516,10 @@ define([
      */
     initializeTour: function (view) {
 
+      this.makeBasemapVisible(view, false);
+
       // CAN WE PREVENT INVALID DRAG EVENTS?
       this.disableInvalidNavigation(view);
-
 
       // SPIN TOOL //
       this.initializeViewSpinTools(view);
@@ -832,7 +855,6 @@ define([
         set_current();
       });
 
-
     },
 
     /**
@@ -850,6 +872,11 @@ define([
 
       // IS DRAG CURRENTLY ALLOWED //
       let valid_drag = true;
+
+      const resetDrag = () => {
+        valid_drag = true;
+        view.container.style.cursor = "default";
+      };
 
       // PROVIDE VISUAL FEEDBACK FOR INVALID LOCATIONS //
       const pointer_move_handle = on.pausable(view, "pointer-move", evt => {
@@ -878,8 +905,7 @@ define([
       // ON POINTER UP RESET DRAG AND CURSOR //
       const pointer_up_handle = on.pausable(view, "pointer-up", evt => {
         if(!valid_drag) {
-          valid_drag = true;
-          view.container.style.cursor = "default";
+          resetDrag();
         }
       });
       pointer_up_handle.pause();
@@ -910,6 +936,7 @@ define([
             handle.resume();
           } else {
             handle.pause();
+            resetDrag();
           }
         });
       };
