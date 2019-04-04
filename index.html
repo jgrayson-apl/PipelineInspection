@@ -153,25 +153,25 @@
 
         <div class="panel panel-blue leader-1">
 
-          <label>
+          <label class="trailer-quarter">
             Z Offset:
             <span id="offset-label">2.5</span>
             <input id="offset-input" type="range" min="0.5" max="10.0" step="any" value="2.5">
           </label>
 
-          <label>
+          <label class="trailer-quarter">
             Densification Distance:
             <span id="densification-label">150</span>
             <input id="densification-input" type="range" min="10" max="500" step="10" value="150">
           </label>
 
-          <label>
+          <label class="trailer-quarter">
             Look Ahead Distance:
             <span id="lookahead-label">250</span>
             <input id="lookahead-input" type="range" min="10" max="500" step="10" value="250">
           </label>
 
-          <label>
+          <label class="trailer-0">
             Look Down Angle:
             <span id="lookdown-label">80</span>
             <input id="lookdown-input" type="range" min="0" max="90" step="1" value="80">
@@ -180,10 +180,17 @@
         </div>
 
         <div class="panel panel-blue leader-1">
-          <label>
-            Max Clip Distance:
+          <label class="trailer-0">
+            Clip Distance: Min=0.1 Max=
             <span id="max-clip-distance-label">1000</span>
             <input id="max-clip-distance-input" type="range" min="0" max="5000" step="1" value="1000">
+          </label>
+        </div>
+
+        <div class="panel panel-blue leader-1">
+          <label class="trailer-0">
+            Disable Invalid Navigation
+            <input id="disable-invalid-navigation-chk" type="checkbox">
           </label>
         </div>
 

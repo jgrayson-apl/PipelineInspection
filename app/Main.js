@@ -494,6 +494,10 @@ define([
      */
     initializeTour: function (view) {
 
+      // CAN WE PREVENT INVALID DRAG EVENTS?
+      this.disableInvalidNavigation(view);
+
+
       // SPIN TOOL //
       this.initializeViewSpinTools(view);
 
@@ -530,12 +534,15 @@ define([
 
       const routeGraphic = new Graphic({
         symbol: {
-          type: "line-3d",
+          type: "simple-line",
+          width: "3px",
+          color: Color.named.red
+          /*type: "line-3d",
           symbolLayers: [{
-            type: "path",
-            size: 1.0,
+            type: "line",
+            size: "3px",
             material: { color: "yellow" }
-          }]
+          }]*/
         }
       });
       const routeLayer = new GraphicsLayer({
@@ -591,12 +598,21 @@ define([
           // CALC DISTANCE ALONG AS M //
           route_geom = this._setMAsDistanceAlong(route_geom);
         }
+        //
+        // GEOMETRY SHOULD BE Z AND M ENABLED
+        // - Z USED TO CALC CAMERA POSITION OFFSET
+        // - M REPRESENTS DISTANCE ALONG
+
         // MODIFY THESE TWO METHODS AND PARAMETERS ACCORDING TO DATA //
         route_geom = geometryEngine.densify(route_geom, densification_input.valueAsNumber, "meters");
-        route_geom = this.smoothGeometry(route_geom, 2, false, true);
-        // OFFSET Z LAST //
+        // SMOOTH GEOMETRY //
+        //  - LAST TWO PARAMETERS DETERMINE IF Z AND M VALUES AREA ALSO SMOOTHED
+        route_geom = this.smoothGeometry(route_geom, 6, true, true);
+
+        // OFFSET Z - I LIKE TO DO THIS LAST //
         route_geom = this.offsetGeometryZ(route_geom, offset_input.valueAsNumber);
 
+        // DISPLAY ROUTE GEOMETRY IN THE VIEW //
         //routeGraphic.geometry = route_geom;
 
         // DISTANCE / LENGTH //
@@ -653,14 +669,6 @@ define([
         }
       });
 
-      view.on("pointer-move", pointer_evt => {
-        view.hitTest(pointer_evt).then(hitResponse => {
-          if(hitResponse.results.length === 0) {
-            pointer_evt.preventDefault();
-            pointer_evt.stopPropagation();
-          }
-        });
-      });
 
       const aoiGraphic = new Graphic({
         symbol: {
@@ -668,12 +676,12 @@ define([
           symbolLayers: [
             {
               type: "fill",
-              material: { color: Color.named.dodgerblue.concat(0.01), doubleSided: false },
-              edges: {
+              material: { color: Color.named.red.concat(0.5), doubleSided: false }
+              /*edges: {
                 type: "solid",
                 color: Color.named.white,
                 size: 1.0
-              }
+              }*/
             }
           ]
         }
@@ -824,6 +832,93 @@ define([
         set_current();
       });
 
+
+    },
+
+    /**
+     *
+     * @param view
+     */
+    disableInvalidNavigation: function (view) {
+
+      // DO WE HAVE A VALID HIT //
+      const isValidHit = (evt) => {
+        return view.hitTest(evt).then(hitResponse => {
+          return (hitResponse.results.length > 0);
+        });
+      };
+
+      // IS DRAG CURRENTLY ALLOWED //
+      let valid_drag = true;
+
+      // PROVIDE VISUAL FEEDBACK FOR INVALID LOCATIONS //
+      const pointer_move_handle = on.pausable(view, "pointer-move", evt => {
+        isValidHit(evt).then(valid => {
+          view.container.style.cursor = valid ? "default" : "not-allowed";
+        });
+      });
+      pointer_move_handle.pause();
+
+      // ON POINTER DOWN DETERMINE IF DRAG OPERATION WILL BE ALLOWED //
+      const pointer_down_handle = on.pausable(view, "pointer-down", evt => {
+        isValidHit(evt).then(valid => {
+          valid_drag = valid;
+        });
+      });
+      pointer_down_handle.pause();
+
+      // DISABLE DRAG OPERATION FOR INVALID LOCATION //
+      const drag_handle = on.pausable(view, "drag", evt => {
+        if(!valid_drag) {
+          evt.stopPropagation();
+        }
+      });
+      drag_handle.pause();
+
+      // ON POINTER UP RESET DRAG AND CURSOR //
+      const pointer_up_handle = on.pausable(view, "pointer-up", evt => {
+        if(!valid_drag) {
+          valid_drag = true;
+          view.container.style.cursor = "default";
+        }
+      });
+      pointer_up_handle.pause();
+
+      // DISABLE DOUBLE-CLICK TO NOWHERE //
+      const double_click_handle = on.pausable(view, "double-click", evt => {
+        isValidHit(evt).then(valid => {
+          if(!valid) {
+            evt.stopPropagation();
+          }
+        });
+      });
+      double_click_handle.pause();
+
+      // NAVIGATION EVENT HANDLES //
+      const navigation_handles = [
+        pointer_move_handle,
+        pointer_down_handle,
+        drag_handle,
+        pointer_up_handle,
+        double_click_handle
+      ];
+
+      // DISABLE INVALID NAVIGATION BY RESUMING EVENT HANDLES //
+      const disableInvalidNavigation = (disable) => {
+        navigation_handles.forEach(handle => {
+          if(disable) {
+            handle.resume();
+          } else {
+            handle.pause();
+          }
+        });
+      };
+
+      // DISABLE NAVIGATION UI CHECKBOX //
+      const disable_invalid_navigation_chk = dom.byId("disable-invalid-navigation-chk");
+      on(disable_invalid_navigation_chk, "change", () => {
+        disableInvalidNavigation(disable_invalid_navigation_chk.checked);
+      });
 
     },
 

@@ -23,9 +23,9 @@ define([
 
   const MOVE_SPEED = {
     STOPPED: { PIXELS: 0.0, FACTOR: 0.000 },
-    SLOW: { PIXELS: 0.5, FACTOR: 0.005 },
-    MEDIUM: { PIXELS: 3.0, FACTOR: 0.010 },
-    FAST: { PIXELS: 6.0, FACTOR: 0.035 }
+    SLOW: { PIXELS: 0.25, FACTOR: 0.005 },
+    MEDIUM: { PIXELS: 0.50, FACTOR: 0.010 },
+    FAST: { PIXELS: 1.00, FACTOR: 0.015 }
   };
 
   const FlyTool = Accessor.createSubclass([Evented], {
@@ -98,7 +98,7 @@ define([
       },
       moveSpeed: {
         type: Object,
-        value: MOVE_SPEED.SLOW
+        value: MOVE_SPEED.FAST
       },
       holdElevation: {
         type: Boolean,
@@ -142,13 +142,22 @@ define([
         evt.stopPropagation();
         if(this.flying) {
           switch (this.moveSpeed) {
-            case MOVE_SPEED.SLOW:
+              /*case MOVE_SPEED.SLOW:
+                this.moveSpeed = MOVE_SPEED.MEDIUM;
+                break;
+              case MOVE_SPEED.MEDIUM:
+                this.moveSpeed = MOVE_SPEED.FAST;
+                break;
+              case MOVE_SPEED.FAST:
+                this._stop();
+                break;*/
+            case MOVE_SPEED.FAST:
               this.moveSpeed = MOVE_SPEED.MEDIUM;
               break;
             case MOVE_SPEED.MEDIUM:
-              this.moveSpeed = MOVE_SPEED.FAST;
+              this.moveSpeed = MOVE_SPEED.SLOW;
               break;
-            case MOVE_SPEED.FAST:
+            case MOVE_SPEED.SLOW:
               this._stop();
               break;
           }
@@ -206,7 +215,7 @@ define([
       this.flying = true;
 
       // SET MOVE SPEED //
-      this.moveSpeed = MOVE_SPEED.SLOW;
+      this.moveSpeed = MOVE_SPEED.FAST;
 
       // SET MAP CURSOR //
       this.setMapCursor(this.cursor_flying);
@@ -339,7 +348,7 @@ define([
       this.flying = false;
 
       // RESET MOVE SPEED //
-      this.moveSpeed = MOVE_SPEED.SLOW;
+      this.moveSpeed = MOVE_SPEED.STOPPED;
 
       // CANCEL FLY ANIMATION //
       window.cancelAnimationFrame(this.animationHandle);
