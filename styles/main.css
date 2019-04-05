@@ -186,3 +186,11 @@ body * {
   width  : 35vw;
   height : 20vh;
 }
+
+.zoom-view-node {
+  position     : absolute;
+  width        : 150px !important;
+  height       : 150px !important;
+  border-color : #0079c1;
+  box-shadow   : 0 1px 2px rgba(0, 0, 0, 0.3);
+}

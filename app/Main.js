@@ -28,6 +28,7 @@ define([
   "dojo/on",
   "dojo/query",
   "dojo/dom",
+  "dojo/dom-style",
   "dojo/dom-class",
   "dojo/dom-construct",
   "esri/identity/IdentityManager",
@@ -54,7 +55,7 @@ define([
   "esri/widgets/Expand",
   "Application/widgets/FlyTool"
 ], function (calcite, declare, ApplicationBase, i18n, itemUtils, domHelper,
-             Color, colors, number, locale, on, query, dom, domClass, domConstruct,
+             Color, colors, number, locale, on, query, dom, domStyle, domClass, domConstruct,
              IdentityManager, Evented, watchUtils, promiseUtils, Viewpoint,
              Portal, Layer, GraphicsLayer,
              Point, Extent, Polyline, geometryEngine, Mesh, geodesicUtils,
@@ -398,9 +399,31 @@ define([
      */
     applicationReady: function (view) {
 
+      // ANIMATED TOUR //
       this.initializeTour(view);
+
+      // 2D MAP OVERVIEW //
       this.initializeOverview(view);
 
+      // CAN WE PREVENT INVALID DRAG EVENTS?
+      this.disableInvalidNavigation(view);
+
+      // SPIN TOOL //
+      this.initializeViewSpinTools(view);
+
+      // HEADING AND LOOK AROUND TOOLS //
+      this.createHeadingSlider(view);
+
+      // PULL ZOOM //
+      this.initializePullZoom(view);
+
+      // FLY TOOL //
+      this.initializeFlyTool(view);
+
+
+      //
+      // FIND PIPELINE LAYER //
+      //
       const pipelineLayerName = "BP_Line";
       this.whenLayerReady(view, pipelineLayerName).then(layerInfo => {
         const pipelineLayer = layerInfo.layer;
@@ -408,8 +431,8 @@ define([
         const query = pipelineLayer.createQuery();
         query.set({ outFields: null, returnZ: true });
 
-        pipelineLayer.queryFeatures(query).then(pipelineFeatrureSet => {
-          const pipelineFeature = pipelineFeatrureSet.features[0];
+        pipelineLayer.queryFeatures(query).then(pipelineFeatureSet => {
+          const pipelineFeature = pipelineFeatureSet.features[0];
 
           //
           // WILL USING A CLIPPING AREA HELP IF WE SWITCHED TO A LOCAL SCENE?
@@ -514,23 +537,99 @@ define([
      *
      * @param view
      */
+    initializePullZoom: function (view) {
+
+      const getViewHit = (evt) => {
+        return view.hitTest(evt).then(hitResponse => {
+          return (hitResponse.results.length > 0) ? hitResponse.results[0].mapPoint : null;
+        });
+      };
+
+      let pullStart = null;
+      let pullEnd = null;
+
+      const pointerMoveHandle = on.pausable(view, "pointer-move", (pointerMoveEvt) => {
+        pointerMoveEvt.stopPropagation();
+        getViewHit(pointerMoveEvt).then((mapPoint) => {
+          view.container.style.cursor = (mapPoint != null) ? "crosshair" : "default";
+        });
+      });
+      pointerMoveHandle.pause();
+
+      const pointerDownHandle = on.pausable(view, "pointer-down", (pointerDownEvt) => {
+        pointerDownEvt.stopPropagation();
+        getViewHit(pointerDownEvt).then((mapPoint) => {
+          if(mapPoint) {
+            pullStart = mapPoint;
+            pullEnd = view.camera.position;
+          } else {
+            pullStart = null;
+            pullEnd = null;
+          }
+        });
+      });
+      pointerDownHandle.pause();
+
+      const dragHandle = on.pausable(view, "drag", (dragEvt) => {
+        dragEvt.stopPropagation();
+        switch (dragEvt.action) {
+          case "start":
+            pointerMoveHandle.pause();
+            pointerDownHandle.pause();
+            break;
+
+          case "update":
+            if(pullStart && pullEnd) {
+              const along = this._distance2D(dragEvt.origin, dragEvt) / ((Math.max(view.width, view.height) * 0.5));
+              const newPosition = this._interpolateLocation(view, pullEnd, pullStart, along);
+              const camera = view.camera.clone();
+              camera.position = newPosition;
+              view.camera = camera;
+            }
+            break;
+
+          case "end":
+            pullStart = null;
+            pullEnd = null;
+            pointerMoveHandle.resume();
+            pointerDownHandle.resume();
+            break;
+        }
+      });
+      dragHandle.pause();
+
+      // PULL ZOOM //
+      const pullZoomBtn = domConstruct.create("button", { className: "btn icon-ui-zoom-in-magnifying-glass", innerHTML: "Pull Zoom" });
+      view.ui.add(pullZoomBtn, "top-right");
+
+      on(pullZoomBtn, "click", () => {
+        domClass.toggle(pullZoomBtn, "btn-clear icon-ui-check-mark");
+        if(domClass.contains(pullZoomBtn, "icon-ui-check-mark")) {
+          dragHandle.resume();
+          pointerMoveHandle.resume();
+          pointerDownHandle.resume();
+        } else {
+          pullStart = null;
+          pullEnd = null;
+          dragHandle.pause();
+          pointerMoveHandle.pause();
+          pointerDownHandle.pause();
+          view.container.style.cursor = "default"
+        }
+      });
+      domClass.remove(pullZoomBtn, "btn-disabled");
+
+    },
+
+
+    /**
+     *
+     * @param view
+     */
     initializeTour: function (view) {
 
       this.makeBasemapVisible(view, false);
 
-      // CAN WE PREVENT INVALID DRAG EVENTS?
-      this.disableInvalidNavigation(view);
-
-      // SPIN TOOL //
-      this.initializeViewSpinTools(view);
-
-      // HEADING AND LOOK AROUND TOOLS //
-      this.createHeadingSlider(view);
-
-      // FLY TOOL //
-      this.initializeFlyTool(view);
-
-      //this.initializeSideViews(view);
 
       const max_clip_distance_input = dom.byId("max-clip-distance-input");
       const max_clip_distance_label = dom.byId("max-clip-distance-label");
@@ -872,7 +971,7 @@ define([
 
       // IS DRAG CURRENTLY ALLOWED //
       let valid_drag = true;
-      
+
       // RESET DRAG //
       const resetDrag = () => {
         valid_drag = true;
@@ -1363,6 +1462,28 @@ define([
         domClass.toggle(alwaysUpBtn, "selected");
         always_up = domClass.contains(alwaysUpBtn, "selected");
       });
+    },
+
+    /**
+     *
+     * @param fromPoint
+     * @param toPoint
+     * @returns {number}
+     * @private
+     */
+    _distance2D: function (fromPoint, toPoint) {
+      return Math.sqrt(Math.pow((fromPoint.x - toPoint.x), 2) + Math.pow((fromPoint.y - toPoint.y), 2));
+    },
+
+    /**
+     *
+     * @param fromPoint
+     * @param toPoint
+     * @returns {number}
+     * @private
+     */
+    _distance3D: function (fromPoint, toPoint) {
+      return Math.sqrt(Math.pow((fromPoint.x - toPoint.x), 2) + Math.pow((fromPoint.y - toPoint.y), 2) + Math.pow((fromPoint.z - toPoint.z), 2));
     }
 
   });
