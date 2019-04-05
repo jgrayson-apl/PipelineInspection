@@ -872,7 +872,8 @@ define([
 
       // IS DRAG CURRENTLY ALLOWED //
       let valid_drag = true;
-
+      
+      // RESET DRAG //
       const resetDrag = () => {
         valid_drag = true;
         view.container.style.cursor = "default";
