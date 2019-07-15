@@ -1,4 +1,4 @@
-# PipelineInspection
+# Pipeline Inspection
 
 * Animate along a path 
     * _JLD Preserve Tour_
